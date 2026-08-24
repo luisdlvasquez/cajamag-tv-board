@@ -1148,6 +1148,7 @@ function checkPausaActiva(){
       clearTimeout(nextTimer);
       renderPausaActivaOverlay(match);
       overlay.classList.add('show');
+      playPausaActivaChime();
     }
     updatePausaActivaCountdown(match);
   } else if(pausaActivaActivaId !== null){
@@ -1227,6 +1228,26 @@ async function requestWakeLock(){
       wakeLock.addEventListener('release', ()=>{ wakeLock = null; });
     }
   }catch(e){ /* no soportado o denegado: seguimos con el audio-loop */ }
+}
+function playPausaActivaChime(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [{freq:659.25, t:0}, {freq:987.77, t:0.28}];
+    notes.forEach(n=>{
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = n.freq;
+      const start = ctx.currentTime + n.t;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.09, start + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.9);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + 1.0);
+    });
+    setTimeout(()=>{ try{ ctx.close(); }catch(e){} }, 2000);
+  }catch(e){}
 }
 function startAntiSleepAudio(){
   const a = document.createElement('audio');
